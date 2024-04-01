@@ -8,11 +8,12 @@ const userRouter = t.router({
     }),
     createUser: t.procedure
         .input(z.object({ username: z.string(), email: z.string().email() }))
-        .mutation(async ({ input }) => {
+        .mutation(async ({ input, ctx }) => {
         const userData = input;
         const newUser = await prisma.user.create({
             data: userData,
         });
+        ctx.res.cookie("jwt", "lfjaleidnfkalndfafiandfk");
         //   console.log(input);
         return {
             message: "data sent",

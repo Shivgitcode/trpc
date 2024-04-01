@@ -1,9 +1,11 @@
-import { hashPass } from "../hashing.js";
+import { hashPass, unHash } from "../hashing.js";
 import { t } from "../trpc.js";
 import { z } from "zod";
 import { PrismaClient } from "@prisma/client";
+import jwt from "jsonwebtoken";
 
-const prisma = new PrismaClient();
+export const secret = "thisistopsecret";
+export const prisma = new PrismaClient();
 
 const userProcedure = t.procedure.input(
   z.object({
@@ -13,10 +15,12 @@ const userProcedure = t.procedure.input(
   })
 );
 
-const loginProcedure=t.procedure.input(z.object({
-    username:z.string(),
-    password:z.string()
-}))
+const loginProcedure = t.procedure.input(
+  z.object({
+    username: z.string(),
+    password: z.string(),
+  })
+);
 
 const userRouter = t.router({
   register: userProcedure.mutation(async ({ input }) => {
@@ -34,7 +38,44 @@ const userRouter = t.router({
       data: newUser,
     };
   }),
-  login:
+  login: loginProcedure.mutation(async ({ ctx, input }) => {
+    const { req, res } = ctx;
+    const { username, password } = input;
+    const findUser = await prisma.user.findUnique({
+      where: {
+        username,
+      },
+    });
+    if (!findUser) {
+      return res.status(404).json({
+        message: "user not found",
+        success: false,
+      });
+    }
+    const { password: hashedPass } = findUser;
+    const isPassword = await unHash(hashedPass, password);
+    console.log(isPassword);
+    if (isPassword) {
+      const token = jwt.sign({ id: findUser.id }, secret);
+      res.cookie("jwt", token);
+      return {
+        message: "successfully logged In",
+        data: token,
+      };
+    } else {
+      return {
+        message: "Invalid username or password",
+      };
+    }
+  }),
+  logout: t.procedure.mutation(({ ctx }) => {
+    const { req, res } = ctx;
+    res.cookie("jwt", "", { maxAge: 5 });
+
+    return {
+      message: "successfully logged out",
+    };
+  }),
 });
 
 export { userRouter };

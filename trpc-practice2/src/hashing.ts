@@ -6,4 +6,9 @@ async function hashPass(password: string) {
   return hashPass;
 }
 
-export { hashPass };
+async function unHash(hashPass: string, password: string) {
+  const isPassword = await bcrypt.compare(password, hashPass);
+  return isPassword;
+}
+
+export { hashPass, unHash };

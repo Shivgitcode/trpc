@@ -25,5 +25,20 @@ const animeRouter = t.router({
             data: createAnime,
         };
     }),
+    showAnimes: t.procedure.query(async ({ ctx }) => {
+        const { req, res } = ctx;
+        const token = req.cookies.jwt;
+        const { id } = jwt.verify(token, secret);
+        console.log(id);
+        const allAnime = await prisma.anime.findMany({
+            where: {
+                userId: id,
+            },
+        });
+        return {
+            message: "all animes fetched",
+            data: allAnime,
+        };
+    }),
 });
 export { animeRouter };
